@@ -20,20 +20,10 @@ class POWERLINETOOL_API UPowerLineToolUtilityLibrary : public UBlueprintFunction
 {
     GENERATED_BODY()
 public:
-    UFUNCTION(BlueprintCallable)
-    static void PrintStringNew(FString text) {
-        if (GEngine)
-        {
-            GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, text);
-        }
-    }
-    UFUNCTION(BlueprintCallable)
-    static void MarkObjectToSave(UObject* MyObject) {
-        MyObject->Modify();
-        MyObject->MarkPackageDirty();
-    }
+
 #if WITH_EDITOR
-    //virtual bool Initialize() override;
+    UFUNCTION(BlueprintCallable)
+    static void MarkObjectToSave(UObject* MyObject);
 
     UFUNCTION(CallInEditor, BlueprintCallable)
     static AActor* SpawnPoleActor(TSubclassOf<AActor> ActorClass, float GroundScanDistance);
@@ -47,74 +37,8 @@ public:
     UFUNCTION(CallInEditor, BlueprintCallable)
     static TArray<AActor*> SpawnPolesAlongSpline(USplineComponent* SplineComp, TSubclassOf<AActor> ActorClass, float DistanceBetweenPoles = 100.0f, bool bScanForGround = false, float ScanRangeUpDown = 500.0f);
 
-    void OnSelectionChanged(UObject* NewSelection);
-
-    UFUNCTION(BlueprintImplementableEvent)
-   void SelectionChanged();
-
     UFUNCTION(BlueprintCallable)
-    static TArray<AActor*> SortActorsByNearestNeighbor(const TArray<AActor*>& Actors)
-    {
-        if (Actors.Num() <= 1) return Actors;
-
-        TArray<AActor*> Sorted;
-        TSet<AActor*> Visited;
-
-        // Find the actor that is the farthest from all others to use as a starting point
-        AActor* StartActor = nullptr;
-        float MaxAvgDistance = -1.f;
-
-        for (AActor* Candidate : Actors)
-        {
-            float TotalDistance = 0.f;
-            for (AActor* Other : Actors)
-            {
-                if (Candidate != Other)
-                {
-                    TotalDistance += FVector::Dist(Candidate->GetActorLocation(), Other->GetActorLocation());
-                }
-            }
-
-            float AvgDist = TotalDistance / (Actors.Num() - 1);
-            if (AvgDist > MaxAvgDistance)
-            {
-                MaxAvgDistance = AvgDist;
-                StartActor = Candidate;
-            }
-        }
-
-        AActor* Current = StartActor;
-        Sorted.Add(Current);
-        Visited.Add(Current);
-
-        while (Visited.Num() < Actors.Num())
-        {
-            float ClosestDist = FLT_MAX;
-            AActor* ClosestActor = nullptr;
-
-            for (AActor* Actor : Actors)
-            {
-                if (!Visited.Contains(Actor))
-                {
-                    float Dist = FVector::Dist(Current->GetActorLocation(), Actor->GetActorLocation());
-                    if (Dist < ClosestDist)
-                    {
-                        ClosestDist = Dist;
-                        ClosestActor = Actor;
-                    }
-                }
-            }
-
-            if (ClosestActor)
-            {
-                Sorted.Add(ClosestActor);
-                Visited.Add(ClosestActor);
-                Current = ClosestActor;
-            }
-        }
-
-        return Sorted;
-    }
+    static TArray<AActor*> SortActorsByNearestNeighbor(const TArray<AActor*>& Actors);
 #endif
 };
 

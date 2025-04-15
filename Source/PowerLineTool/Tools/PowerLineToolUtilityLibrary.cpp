@@ -7,6 +7,11 @@
 #include "EditorViewportClient.h"
 
 
+void UPowerLineToolUtilityLibrary::MarkObjectToSave(UObject* MyObject)
+{
+    MyObject->Modify();
+    MyObject->MarkPackageDirty();
+}
 AActor* UPowerLineToolUtilityLibrary::SpawnPoleActor(TSubclassOf<AActor> ActorClass, float GroundScanDistance)
 {
     if (!GEditor || !GCurrentLevelEditingViewportClient || !ActorClass)
@@ -79,9 +84,66 @@ TArray<AActor*> UPowerLineToolUtilityLibrary::SpawnPolesAlongSpline(USplineCompo
     }
     return SpawnedActors;
 }
+TArray<AActor*> UPowerLineToolUtilityLibrary::SortActorsByNearestNeighbor(const TArray<AActor*>& Actors)
 
-void UPowerLineToolUtilityLibrary::OnSelectionChanged(UObject* NewSelection)
 {
-    SelectionChanged();
+    if (Actors.Num() <= 1) return Actors;
+
+    TArray<AActor*> Sorted;
+    TSet<AActor*> Visited;
+
+    AActor* StartActor = nullptr;
+    float MaxAvgDistance = -1.f;
+
+    for (AActor* Candidate : Actors)
+    {
+        float TotalDistance = 0.f;
+        for (AActor* Other : Actors)
+        {
+            if (Candidate != Other)
+            {
+                TotalDistance += FVector::Dist(Candidate->GetActorLocation(), Other->GetActorLocation());
+            }
+        }
+
+        float AvgDist = TotalDistance / (Actors.Num() - 1);
+        if (AvgDist > MaxAvgDistance)
+        {
+            MaxAvgDistance = AvgDist;
+            StartActor = Candidate;
+        }
+    }
+
+    AActor* Current = StartActor;
+    Sorted.Add(Current);
+    Visited.Add(Current);
+
+    while (Visited.Num() < Actors.Num())
+    {
+        float ClosestDist = FLT_MAX;
+        AActor* ClosestActor = nullptr;
+
+        for (AActor* Actor : Actors)
+        {
+            if (!Visited.Contains(Actor))
+            {
+                float Dist = FVector::Dist(Current->GetActorLocation(), Actor->GetActorLocation());
+                if (Dist < ClosestDist)
+                {
+                    ClosestDist = Dist;
+                    ClosestActor = Actor;
+                }
+            }
+        }
+
+        if (ClosestActor)
+        {
+            Sorted.Add(ClosestActor);
+            Visited.Add(ClosestActor);
+            Current = ClosestActor;
+        }
+    }
+
+    return Sorted;
 }
 #endif
